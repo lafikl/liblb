@@ -1,6 +1,10 @@
 package liblb
 
-// Balancer should be used for
+import "errors"
+
+// Balancer should be used when you need to
+// accept a certain load balancer as an argument
+//
 // candidate implementations:
 //    - roundrobin
 //    - hashing/sticky
@@ -21,3 +25,5 @@ package liblb
 type Balancer interface {
 	Balance() string
 }
+
+var ErrNoHost = errors.New("host not found")
