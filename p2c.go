@@ -37,6 +37,24 @@ func (p *P2C) AddHost(hostName string, load uint64) {
 	p.hosts = append(p.hosts, host{name: hostName, load: load})
 }
 
+func (p *P2C) RemoveHost(host ...string) {
+	for _, h := range host {
+		_, ok := p.loadMap[h]
+		if !ok {
+			continue
+		}
+
+		delete(p.loadMap, h)
+
+		for i, v := range p.hosts {
+			if v.name == h {
+				p.hosts = append(p.hosts[:i], p.hosts[i+1:]...)
+			}
+		}
+
+	}
+}
+
 // Balance picks two servers randomly then returns
 // the least loaded one between the two
 func (p *P2C) Balance() string {

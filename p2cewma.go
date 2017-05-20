@@ -36,7 +36,25 @@ func (p *P2CEWMA) AddHost(host ...string) {
 	}
 }
 
-func (p *P2CEWMA) AddLoad(host string, load float64) error {
+func (p *P2CEWMA) RemoveHost(host ...string) {
+	for _, h := range host {
+		_, ok := p.loadMap[h]
+		if !ok {
+			continue
+		}
+
+		delete(p.loadMap, h)
+
+		for i, v := range p.hosts {
+			if v == h {
+				p.hosts = append(p.hosts[:i], p.hosts[i+1:]...)
+			}
+		}
+
+	}
+}
+
+func (p *P2CEWMA) UpdateLoad(host string, load float64) error {
 	h, ok := p.loadMap[host]
 	if !ok {
 		return ErrNoHost
