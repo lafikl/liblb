@@ -39,7 +39,6 @@ func TestNewP2C(t *testing.T) {
 		fmt.Printf("%s=%d\n", host, val)
 
 		// check for load variance
-
 		for _, otherHost := range hosts {
 			oval, err := lb.GetLoad(otherHost)
 			if err != nil {
@@ -48,7 +47,7 @@ func TestNewP2C(t *testing.T) {
 			floatOval := float64(oval)
 
 			variance := floatVal / (floatVal + floatOval)
-			if variance > goalVariance {
+			if variance > upperVariance {
 				t.Fatalf("variance between (%s, %s) is %.2f > %.2f\n",
 					host, otherHost, variance, upperVariance)
 			} else {
