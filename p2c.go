@@ -16,25 +16,24 @@ type host struct {
 // It guarantees that the load variance between any two servers
 // will never exceed log(log(n)) where n is the number of hosts
 type P2C struct {
-	hosts   []host
+	hosts   []*host
 	rndm    *rand.Rand
 	loadMap map[string]*host
 }
 
 // New returns a new instance of RandomTwoBalancer
-func NewP2C(hosts []string) *P2C {
-	h := []host{}
-	for _, item := range hosts {
-		h = append(h, host{name: item, load: 0})
-	}
+func NewP2C() *P2C {
 	return &P2C{
-		hosts: h,
-		rndm:  rand.New(rand.NewSource(time.Now().UnixNano())),
+		hosts:   []*host{},
+		loadMap: map[string]*host{},
+		rndm:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
 func (p *P2C) AddHost(hostName string, load uint64) {
-	p.hosts = append(p.hosts, host{name: hostName, load: load})
+	h := &host{name: hostName, load: load}
+	p.hosts = append(p.hosts, h)
+	p.loadMap[hostName] = h
 }
 
 func (p *P2C) RemoveHost(host ...string) {
