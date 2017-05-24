@@ -57,7 +57,7 @@ func (b *BoundedHashBalancer) AddWithWeight(host string, weight int) {
 		return
 	}
 
-	b.loads[host] = &boundedHost{load: 1, weight: weight}
+	b.loads[host] = &boundedHost{load: 0, weight: weight}
 	b.ch.Add(host)
 }
 
@@ -112,6 +112,14 @@ func (b *BoundedHashBalancer) Loads() map[string]uint64 {
 	return loads
 }
 
+func (b *BoundedHashBalancer) Weights() map[string]uint64 {
+	weights := map[string]uint64{}
+	for k, bhost := range b.loads {
+		weights[k] = uint64(bhost.weight)
+	}
+	return weights
+}
+
 func (b *BoundedHashBalancer) loadOK(host string) bool {
 	// calcs load
 	if b.totalLoad == 0 {
@@ -126,6 +134,7 @@ func (b *BoundedHashBalancer) loadOK(host string) bool {
 		panic(fmt.Sprintf("given host(%s) not in loadsMap", host))
 	}
 
+	// fmt.Println(host, bhost.load < (avgLoadPerNode*uint64(bhost.weight)))
 	if bhost.load < (avgLoadPerNode * uint64(bhost.weight)) {
 		return true
 	}
@@ -134,9 +143,24 @@ func (b *BoundedHashBalancer) loadOK(host string) bool {
 }
 
 func (b *BoundedHashBalancer) AvgLoad() uint64 {
+	b.Lock()
+	defer b.Unlock()
+
 	avgLoadPerNode := b.totalLoad * 2 / 4
 	if avgLoadPerNode == 0 {
 		avgLoadPerNode = 1
 	}
 	return avgLoadPerNode
+}
+
+func (b *BoundedHashBalancer) MaxLoad(host string) uint64 {
+	avg := b.AvgLoad()
+
+	b.Lock()
+	defer b.Unlock()
+	bh, ok := b.loads[host]
+	if !ok {
+		return 0
+	}
+	return avg * uint64(bh.weight)
 }

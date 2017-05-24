@@ -2,25 +2,33 @@ package liblb
 
 import (
 	"fmt"
-	"log"
 	"testing"
 )
 
 func TestNewBoundedHash(t *testing.T) {
 	lb := NewBoundedHashBalancer()
-	lb.Add("127.0.0.1")
-	lb.Add("192.0.0.1")
-	lb.Add("88.0.0.1")
-	lb.Add("10.10.0.1")
-	for i := 0; i < 10*4; i++ {
-		h, err := lb.Balance("hello world")
-		log.Println("iter", i, h, err)
+	lb.AddWithWeight("127.0.0.1", 1)
+	lb.AddWithWeight("192.0.0.1", 1)
+	lb.AddWithWeight("88.0.0.1", 2)
+	lb.AddWithWeight("10.0.0.1", 2)
+
+	for i := 0; i < 10*100; i++ {
+		_, err := lb.Balance(fmt.Sprintf("hello world %d", i))
+		if err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	loads := lb.Loads()
+	weights := lb.Weights()
 	for k, load := range loads {
-		if load > lb.AvgLoad() {
-			t.Fatal(fmt.Sprintf("%s load(%d) > avgLoad(%d)", k, load, lb.AvgLoad()))
+		if load > lb.AvgLoad()*weights[k] {
+			t.Fatal(fmt.Sprintf("%s load(%d) > avgLoad(%d)", k,
+				load, lb.AvgLoad()*weights[k]))
 		}
+	}
+	for k, load := range loads {
+		fmt.Printf("%s load(%d,%d) > avgLoad(%d)\n", k, lb.MaxLoad(k),
+			load, lb.AvgLoad()*weights[k])
 	}
 }
