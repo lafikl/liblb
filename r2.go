@@ -6,8 +6,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-// RoundRobin implements round-robin alogrithm
-type RoundRobin struct {
+// R2 implements round-robin alogrithm
+type R2 struct {
 	i             int
 	hosts         []string
 	enableMetrics bool
@@ -17,11 +17,11 @@ type RoundRobin struct {
 	sync.Mutex
 }
 
-func NewRoundRobin(hosts ...string) *RoundRobin {
-	return &RoundRobin{i: 0, hosts: hosts}
+func NewR2(hosts ...string) *R2 {
+	return &R2{i: 0, hosts: hosts}
 }
 
-func (rb *RoundRobin) AddHost(host string) {
+func (rb *R2) AddHost(host string) {
 	rb.Lock()
 	defer rb.Unlock()
 
@@ -33,25 +33,53 @@ func (rb *RoundRobin) AddHost(host string) {
 	rb.hosts = append(rb.hosts, host)
 }
 
-func (rb *RoundRobin) RemoveHost(host string) {
+func (rb *R2) AddHostWithWeight(host string, weight int) {
+	rb.Lock()
+	defer rb.Unlock()
+
+	for _, h := range rb.hosts {
+		if h == host {
+			return
+		}
+	}
+
+	for i := 0; i < weight; i++ {
+		rb.hosts = append(rb.hosts, host)
+	}
+
+}
+
+func (rb *R2) HostExists(host string) bool {
+	rb.Lock()
+	defer rb.Unlock()
+
+	for _, h := range rb.hosts {
+		if h == host {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (rb *R2) RemoveHost(host string) {
 	rb.Lock()
 	defer rb.Unlock()
 
 	for i, h := range rb.hosts {
 		if host == h {
 			rb.hosts = append(rb.hosts[:i], rb.hosts[i+1:]...)
-			break
 		}
 	}
 }
 
-func (rb *RoundRobin) EnableMetrics() error {
+func (rb *R2) EnableMetrics() error {
 	rb.Lock()
 	defer rb.Unlock()
 
 	sreq := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "liblb_rb_requests_total",
-		Help: "Number of requests served by RoundRobin balancer",
+		Help: "Number of requests served by R2 balancer",
 	}, []string{"host"})
 
 	err := prometheus.Register(sreq)
@@ -65,7 +93,7 @@ func (rb *RoundRobin) EnableMetrics() error {
 	return nil
 }
 
-func (rb *RoundRobin) Balance() string {
+func (rb *R2) Balance() string {
 	rb.Lock()
 	defer rb.Unlock()
 
