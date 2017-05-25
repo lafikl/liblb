@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestNewBoundedHash(t *testing.T) {
-	lb := NewBoundedHashBalancer()
+func TestNewConsistentBounded(t *testing.T) {
+	lb := NewConsistentBounded()
 	lb.AddWithWeight("127.0.0.1", 1)
 	lb.AddWithWeight("192.0.0.1", 1)
 	lb.AddWithWeight("88.0.0.1", 2)

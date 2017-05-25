@@ -16,7 +16,8 @@ type boundedHost struct {
 	weight int
 }
 
-type BoundedHashBalancer struct {
+// CHBL is Consistent hashing with bounded loads
+type CHBL struct {
 	ch               *consistent.Consistent
 	loads            map[string]*boundedHost
 	numberOfReplicas int
@@ -25,19 +26,19 @@ type BoundedHashBalancer struct {
 	sync.RWMutex
 }
 
-func NewBoundedHashBalancer(numberOfReplicas ...int) *BoundedHashBalancer {
+func NewConsistentBounded(numberOfReplicas ...int) *CHBL {
 	ch := consistent.New()
 	if len(numberOfReplicas) > 0 {
 		ch.NumberOfReplicas = numberOfReplicas[0]
 	}
 
-	return &BoundedHashBalancer{
+	return &CHBL{
 		ch:    consistent.New(),
 		loads: map[string]*boundedHost{},
 	}
 }
 
-func (b *BoundedHashBalancer) Add(host string) {
+func (b *CHBL) Add(host string) {
 	b.Lock()
 	defer b.Unlock()
 
@@ -49,7 +50,7 @@ func (b *BoundedHashBalancer) Add(host string) {
 	b.ch.Add(host)
 }
 
-func (b *BoundedHashBalancer) AddWithWeight(host string, weight int) {
+func (b *CHBL) AddWithWeight(host string, weight int) {
 	b.Lock()
 	defer b.Unlock()
 
@@ -61,14 +62,14 @@ func (b *BoundedHashBalancer) AddWithWeight(host string, weight int) {
 	b.ch.Add(host)
 }
 
-func (b *BoundedHashBalancer) Balance(key string) (host string, err error) {
+func (b *CHBL) Balance(key string) (host string, err error) {
 	b.Lock()
 	defer b.Unlock()
 
 	return b.get("", key, 10)
 }
 
-func (b *BoundedHashBalancer) get(firstKey, currentKey string, size int) (string, error) {
+func (b *CHBL) get(firstKey, currentKey string, size int) (string, error) {
 	hosts, err := b.ch.GetN(currentKey, size)
 	if err != nil {
 		return "", err
@@ -92,7 +93,7 @@ func (b *BoundedHashBalancer) get(firstKey, currentKey string, size int) (string
 	return b.get(firstKey, currentKey, size)
 }
 
-func (b *BoundedHashBalancer) Done(host string) {
+func (b *CHBL) Done(host string) {
 	b.Lock()
 	defer b.Unlock()
 
@@ -104,7 +105,7 @@ func (b *BoundedHashBalancer) Done(host string) {
 	b.totalLoad--
 }
 
-func (b *BoundedHashBalancer) Loads() map[string]uint64 {
+func (b *CHBL) Loads() map[string]uint64 {
 	loads := map[string]uint64{}
 	for k, bhost := range b.loads {
 		loads[k] = bhost.load
@@ -112,7 +113,7 @@ func (b *BoundedHashBalancer) Loads() map[string]uint64 {
 	return loads
 }
 
-func (b *BoundedHashBalancer) Weights() map[string]uint64 {
+func (b *CHBL) Weights() map[string]uint64 {
 	weights := map[string]uint64{}
 	for k, bhost := range b.loads {
 		weights[k] = uint64(bhost.weight)
@@ -120,7 +121,7 @@ func (b *BoundedHashBalancer) Weights() map[string]uint64 {
 	return weights
 }
 
-func (b *BoundedHashBalancer) loadOK(host string) bool {
+func (b *CHBL) loadOK(host string) bool {
 	// calcs load
 	if b.totalLoad == 0 {
 		b.totalLoad = 1
@@ -142,7 +143,7 @@ func (b *BoundedHashBalancer) loadOK(host string) bool {
 	return false
 }
 
-func (b *BoundedHashBalancer) AvgLoad() uint64 {
+func (b *CHBL) AvgLoad() uint64 {
 	b.Lock()
 	defer b.Unlock()
 
@@ -153,7 +154,7 @@ func (b *BoundedHashBalancer) AvgLoad() uint64 {
 	return avgLoadPerNode
 }
 
-func (b *BoundedHashBalancer) MaxLoad(host string) uint64 {
+func (b *CHBL) MaxLoad(host string) uint64 {
 	avg := b.AvgLoad()
 
 	b.Lock()
