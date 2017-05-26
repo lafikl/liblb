@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/prometheus/client_golang/prometheus"
+
 	"stathat.com/c/consistent"
 )
 
@@ -23,6 +25,9 @@ type CHBL struct {
 	numberOfReplicas int
 	totalLoad        uint64
 
+	enableMetrics bool
+	servedReqs    *prometheus.CounterVec
+	errCounter    *prometheus.CounterVec
 	sync.RWMutex
 }
 
@@ -36,6 +41,37 @@ func NewConsistentBounded(numberOfReplicas ...int) *CHBL {
 		ch:    consistent.New(),
 		loads: map[string]*boundedHost{},
 	}
+}
+
+func (c *CHBL) EnableMetrics() error {
+	c.Lock()
+	defer c.Unlock()
+
+	sreq := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "liblb_consistent_bounded_requests_total",
+		Help: "Number of requests served by Consistent Bounded",
+	}, []string{"host"})
+
+	err := prometheus.Register(sreq)
+	if err != nil {
+		return err
+	}
+
+	errCounter := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "liblb_consistent_bounded_errors_total",
+		Help: "Number of times CHBL failed",
+	}, []string{"type"})
+
+	err = prometheus.Register(errCounter)
+	if err != nil {
+		return err
+	}
+
+	c.servedReqs = sreq
+	c.errCounter = errCounter
+	c.enableMetrics = true
+
+	return nil
 }
 
 func (b *CHBL) Add(host string) {
@@ -66,7 +102,27 @@ func (b *CHBL) Balance(key string) (host string, err error) {
 	b.Lock()
 	defer b.Unlock()
 
-	return b.get("", key, 10)
+	host, err = b.get("", key, 10)
+	if err != nil {
+		if b.enableMetrics {
+			b.updateErrCount(err)
+		}
+		return
+	}
+
+	if b.enableMetrics {
+		b.servedReqs.WithLabelValues(host).Inc()
+	}
+
+	return
+}
+
+func (b *CHBL) updateErrCount(err error) {
+	typ := "empty"
+	if err == ErrAllOverloaded {
+		typ = "overloaded"
+	}
+	b.errCounter.WithLabelValues(typ).Inc()
 }
 
 func (b *CHBL) get(firstKey, currentKey string, size int) (string, error) {
