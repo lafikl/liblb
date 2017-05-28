@@ -56,5 +56,36 @@ func TestNewP2C(t *testing.T) {
 			}
 		}
 	}
+}
 
+func TestNewHP2C(t *testing.T) {
+	var hosts = []string{
+		"127.0.0.1",
+		"225.0.0.1",
+		"10.0.0.1",
+		"28.0.0.1",
+		"88.0.0.1",
+	}
+
+	lb := NewP2C()
+
+	for _, host := range hosts {
+		lb.AddHost(host, 0)
+	}
+
+	for i := 0; i < 200; i++ {
+		for j := 0; j < 100; j++ {
+			lb.Balance("hello, world!")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	for _, host := range hosts {
+		val, err := lb.GetLoad(host)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Printf("%s=%d\n", host, val)
+
+	}
 }

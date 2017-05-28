@@ -1,6 +1,7 @@
 package liblb
 
 import (
+	"hash/fnv"
 	"math/rand"
 	"sync"
 	"time"
@@ -13,11 +14,12 @@ type host struct {
 	load uint64
 }
 
-// P2C will distribute the traffic by choosing two random hosts
+// P2C will distribute the traffic by choosing two hosts either via hashing or randomly
 // and then pick the least loaded of the two.
 //
-// It guarantees that the load variance between any two servers
-// will never exceed log(log(n)) where n is the number of hosts
+// random p2c http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+// the hashing P2C https://arxiv.org/pdf/1510.07623.pdf
+//
 type P2C struct {
 	hosts   []*host
 	rndm    *rand.Rand
@@ -25,6 +27,7 @@ type P2C struct {
 
 	enableMetrics bool
 	servedReqs    *prometheus.CounterVec
+	hashing       bool
 
 	sync.Mutex
 }
@@ -87,21 +90,38 @@ func (p *P2C) RemoveHost(host ...string) {
 	}
 }
 
-// Balance picks two servers randomly then returns
-// the least loaded one between the two
-func (p *P2C) Balance() string {
+func (p *P2C) hash(key string) (string, string) {
+	h := fnv.New32()
+	h.Write([]byte(key))
+
+	n1 := p.hosts[int(h.Sum32())%len(p.hosts)].name
+	n2 := p.hosts[int(murmur3([]byte(key)))%len(p.hosts)].name
+
+	return n1, n2
+
+}
+
+// Balance picks two servers either randomly (if no key supplied), or via
+// hashing if given a key then returns the least loaded one between the two
+func (p *P2C) Balance(key ...string) string {
 	p.Lock()
 	defer p.Unlock()
 
 	// chosen host
 	var host string
 
-	n1 := p.hosts[p.rndm.Intn(len(p.hosts))].name
-	n2 := p.hosts[p.rndm.Intn(len(p.hosts))].name
+	var n1, n2 string
+
+	if len(key) > 0 {
+		n1, n2 = p.hash(key[0])
+	} else {
+		n1 = p.hosts[p.rndm.Intn(len(p.hosts))].name
+		n2 = p.hosts[p.rndm.Intn(len(p.hosts))].name
+	}
 
 	host = n2
 
-	if p.loadMap[n1].load <= p.loadMap[n1].load {
+	if p.loadMap[n1].load <= p.loadMap[n2].load {
 		host = n1
 	}
 
