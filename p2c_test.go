@@ -20,12 +20,12 @@ func TestNewP2C(t *testing.T) {
 	lb := NewP2C()
 
 	for _, host := range hosts {
-		lb.AddHost(host, 0)
+		lb.AddHost(host)
 	}
 
 	for i := 0; i < 200; i++ {
 		for j := 0; j < 100; j++ {
-			lb.Balance()
+			lb.Balance("")
 		}
 		time.Sleep(100 * time.Millisecond)
 	}
@@ -70,7 +70,7 @@ func TestNewHP2C(t *testing.T) {
 	lb := NewP2C()
 
 	for _, host := range hosts {
-		lb.AddHost(host, 0)
+		lb.AddHost(host)
 	}
 
 	for i := 0; i < 200; i++ {

@@ -78,7 +78,7 @@ func (rb *R2) EnableMetrics() error {
 	defer rb.Unlock()
 
 	sreq := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "liblb_rb_requests_total",
+		Name: "liblb_r2_requests_total",
 		Help: "Number of requests served by R2 balancer",
 	}, []string{"host"})
 
@@ -93,12 +93,12 @@ func (rb *R2) EnableMetrics() error {
 	return nil
 }
 
-func (rb *R2) Balance() string {
+func (rb *R2) Balance() (string, error) {
 	rb.Lock()
 	defer rb.Unlock()
 
 	if len(rb.hosts) == 0 {
-		panic("no hosts")
+		return "", ErrNoHost
 	}
 
 	host := rb.hosts[rb.i]
@@ -111,5 +111,5 @@ func (rb *R2) Balance() string {
 		rb.servedReqs.WithLabelValues(host).Inc()
 	}
 
-	return host
+	return host, nil
 }

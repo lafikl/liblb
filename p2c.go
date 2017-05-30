@@ -27,18 +27,24 @@ type P2C struct {
 
 	enableMetrics bool
 	servedReqs    *prometheus.CounterVec
+	pservedReqs   *prometheus.CounterVec
 	hashing       bool
 
 	sync.Mutex
 }
 
 // New returns a new instance of RandomTwoBalancer
-func NewP2C() *P2C {
-	return &P2C{
+func NewP2C(hosts ...string) *P2C {
+	p := &P2C{
 		hosts:   []*host{},
 		loadMap: map[string]*host{},
 		rndm:    rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
+
+	for _, h := range hosts {
+		p.AddHost(h)
+	}
+	return p
 }
 
 func (p *P2C) EnableMetrics() error {
@@ -56,15 +62,26 @@ func (p *P2C) EnableMetrics() error {
 	}
 	p.servedReqs = sreq
 
+	psreq := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "liblb_pp2c_requests_total",
+		Help: "Number of requests served by Partial Key balancer",
+	}, []string{"host"})
+
+	err = prometheus.Register(psreq)
+	if err != nil {
+		return err
+	}
+	p.pservedReqs = psreq
+
 	p.enableMetrics = true
 	return nil
 }
 
-func (p *P2C) AddHost(hostName string, load uint64) {
+func (p *P2C) AddHost(hostName string) {
 	p.Lock()
 	defer p.Unlock()
 
-	h := &host{name: hostName, load: load}
+	h := &host{name: hostName, load: 0}
 	p.hosts = append(p.hosts, h)
 	p.loadMap[hostName] = h
 }
@@ -103,9 +120,13 @@ func (p *P2C) hash(key string) (string, string) {
 
 // Balance picks two servers either randomly (if no key supplied), or via
 // hashing if given a key then returns the least loaded one between the two
-func (p *P2C) Balance(key ...string) string {
+func (p *P2C) Balance(key string) (string, error) {
 	p.Lock()
 	defer p.Unlock()
+
+	if len(p.hosts) == 0 {
+		return "", ErrNoHost
+	}
 
 	// chosen host
 	var host string
@@ -113,7 +134,7 @@ func (p *P2C) Balance(key ...string) string {
 	var n1, n2 string
 
 	if len(key) > 0 {
-		n1, n2 = p.hash(key[0])
+		n1, n2 = p.hash(key)
 	} else {
 		n1 = p.hosts[p.rndm.Intn(len(p.hosts))].name
 		n2 = p.hosts[p.rndm.Intn(len(p.hosts))].name
@@ -126,11 +147,15 @@ func (p *P2C) Balance(key ...string) string {
 	}
 
 	if p.enableMetrics {
-		p.servedReqs.WithLabelValues(host).Inc()
+		if len(key) > 0 {
+			p.pservedReqs.WithLabelValues(host).Inc()
+		} else {
+			p.servedReqs.WithLabelValues(host).Inc()
+		}
 	}
 
 	p.loadMap[host].load++
-	return host
+	return host, nil
 }
 
 // UpdateLoad updates the load of a host

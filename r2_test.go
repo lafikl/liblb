@@ -13,7 +13,7 @@ func TestNewR2(t *testing.T) {
 	loads := map[string]uint64{}
 
 	for i := 0; i < reqPerHost*len(hosts); i++ {
-		host := lb.Balance()
+		host, _ := lb.Balance()
 
 		l, _ := loads[host]
 		loads[host] = l + 1
@@ -41,7 +41,7 @@ func TestWeightedR2(t *testing.T) {
 	loads := map[string]uint64{}
 
 	for i := 0; i < reqPerHost*len(hosts); i++ {
-		host := lb.Balance()
+		host, _ := lb.Balance()
 
 		l, _ := loads[host]
 		loads[host] = l + 1

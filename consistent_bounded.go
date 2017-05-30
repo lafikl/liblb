@@ -31,16 +31,15 @@ type CHBL struct {
 	sync.RWMutex
 }
 
-func NewConsistentBounded(numberOfReplicas ...int) *CHBL {
-	ch := consistent.New()
-	if len(numberOfReplicas) > 0 {
-		ch.NumberOfReplicas = numberOfReplicas[0]
-	}
-
-	return &CHBL{
+func NewConsistentBounded(hosts ...string) *CHBL {
+	c := &CHBL{
 		ch:    consistent.New(),
 		loads: map[string]*boundedHost{},
 	}
+	for _, h := range hosts {
+		c.Add(h)
+	}
+	return c
 }
 
 func (c *CHBL) EnableMetrics() error {
@@ -75,15 +74,7 @@ func (c *CHBL) EnableMetrics() error {
 }
 
 func (b *CHBL) Add(host string) {
-	b.Lock()
-	defer b.Unlock()
-
-	if _, ok := b.loads[host]; ok {
-		return
-	}
-
-	b.loads[host] = &boundedHost{load: 0, weight: 1}
-	b.ch.Add(host)
+	b.AddWithWeight(host, 1)
 }
 
 func (b *CHBL) AddWithWeight(host string, weight int) {
@@ -101,6 +92,10 @@ func (b *CHBL) AddWithWeight(host string, weight int) {
 func (b *CHBL) Balance(key string) (host string, err error) {
 	b.Lock()
 	defer b.Unlock()
+
+	if len(b.ch.Members()) == 0 {
+		return "", ErrNoHost
+	}
 
 	host, err = b.get("", key, 10)
 	if err != nil {

@@ -6,11 +6,7 @@ import (
 )
 
 func TestNewConsistentBounded(t *testing.T) {
-	lb := NewConsistentBounded()
-	lb.AddWithWeight("127.0.0.1", 1)
-	lb.AddWithWeight("192.0.0.1", 1)
-	lb.AddWithWeight("88.0.0.1", 2)
-	lb.AddWithWeight("10.0.0.1", 2)
+	lb := NewConsistentBounded("127.0.0.1", "192.0.0.1", "88.0.0.1", "10.0.0.1")
 
 	for i := 0; i < 10*100; i++ {
 		_, err := lb.Balance(fmt.Sprintf("hello world %d", i))
