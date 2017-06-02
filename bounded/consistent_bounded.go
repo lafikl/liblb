@@ -29,6 +29,7 @@ type Bounded struct {
 	enableMetrics bool
 	servedReqs    *prometheus.CounterVec
 	errCounter    *prometheus.CounterVec
+
 	sync.RWMutex
 }
 
@@ -178,7 +179,7 @@ func (b *Bounded) loadOK(host string) bool {
 	if b.totalLoad == 0 {
 		b.totalLoad = 1
 	}
-	avgLoadPerNode := b.totalLoad * 2 / 4
+	avgLoadPerNode := ((b.totalLoad * 2 / 4) + b.totalLoad) / uint64(len(b.loads))
 	if avgLoadPerNode == 0 {
 		avgLoadPerNode = 1
 	}
@@ -187,8 +188,7 @@ func (b *Bounded) loadOK(host string) bool {
 		panic(fmt.Sprintf("given host(%s) not in loadsMap", host))
 	}
 
-	// fmt.Println(host, bhost.load < (avgLoadPerNode*uint64(bhost.weight)))
-	if bhost.load < (avgLoadPerNode * uint64(bhost.weight)) {
+	if bhost.load < (avgLoadPerNode*uint64(bhost.weight))+1 {
 		return true
 	}
 
@@ -199,7 +199,7 @@ func (b *Bounded) AvgLoad() uint64 {
 	b.Lock()
 	defer b.Unlock()
 
-	avgLoadPerNode := b.totalLoad * 2 / 4
+	avgLoadPerNode := ((b.totalLoad * 2 / 4) + b.totalLoad) / uint64(len(b.loads))
 	if avgLoadPerNode == 0 {
 		avgLoadPerNode = 1
 	}
