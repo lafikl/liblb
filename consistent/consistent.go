@@ -43,11 +43,11 @@ func (c *Consistent) EnableMetrics() error {
 	return nil
 }
 
-func (c *Consistent) AddHost(host string) {
+func (c *Consistent) Add(host string) {
 	c.ch.Add(host)
 }
 
-func (c *Consistent) RemoveHost(host string) {
+func (c *Consistent) Remove(host string) {
 	c.ch.Remove(host)
 }
 
