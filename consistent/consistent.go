@@ -9,6 +9,21 @@ import (
 	"stathat.com/c/consistent"
 )
 
+// Consistent uses consistent hashing algorithm to assign work to hosts.
+// Its best for the cases when you need affinty, and your hosts come and go.
+// When removing a host it gaurantees that only 1/n of items gets reshuffled
+// where n is the number of servers.
+//
+// One of the issues with Consistent Hashing is load imbalance
+// when you hot keys that goes to a single server,
+// it's mitigated by using virtual nodes,
+// which basically means when adding a host we add n - 20 in our case - copies.
+//
+// Beware that if Consistent Hashing doesn't provide,
+// an upper bound for the load of a host.
+// If you need such gaurantees see package bounded.
+//
+// https://en.wikipedia.org/wiki/Consistent_hashing
 type Consistent struct {
 	ch *consistent.Consistent
 

@@ -20,12 +20,21 @@ type bhost struct {
 	weight int
 }
 
-// Bounded is Consistent hashing with bounded loads
+// Bounded is Consistent hashing with bounded loads.
+// It acheives that by adding a capacity counter on every host,
+// and when a host gets picked it, checks its capacity to see if it's below
+// the Average Load per Host
+//
+// Average Load Per Host is defined as follows:
+// (totalLoad/number_of_hosts)*imbalance_constant
+// totalLoad = sum of all hosts load
+// load = the number of active requests
+// imbalance_constant = is the imbalance constant, which is 1.25 in our case
+// it bounds the load imabalnce to be at most 25% more than (totalLoad/number_of_hosts)
 type Bounded struct {
-	ch               *consistent.Consistent
-	loads            map[string]*bhost
-	numberOfReplicas int
-	totalLoad        uint64
+	ch        *consistent.Consistent
+	loads     map[string]*bhost
+	totalLoad uint64
 
 	enableMetrics bool
 	servedReqs    *prometheus.CounterVec
@@ -45,6 +54,8 @@ func New(hosts ...string) *Bounded {
 	return c
 }
 
+// Registers "liblb_consistent_bounded_requests_total" and
+// "liblb_consistent_bounded_errors_total" in prometheus.
 func (c *Bounded) EnableMetrics() error {
 	c.Lock()
 	defer c.Unlock()
@@ -77,10 +88,12 @@ func (c *Bounded) EnableMetrics() error {
 }
 
 func (b *Bounded) Add(host string) {
-	b.AddWithWeight(host, 1)
+	b.AddWeight(host, 1)
 }
 
-func (b *Bounded) AddWithWeight(host string, weight int) {
+// Weight increases the max load of a host in the following way:
+// MaxLoad(host)*weight
+func (b *Bounded) AddWeight(host string, weight int) {
 	b.Lock()
 	defer b.Unlock()
 
@@ -107,6 +120,10 @@ func (b *Bounded) Remove(host string) {
 	b.ch.Remove(host)
 }
 
+// err can be either liblb.ErrNoHost if there's no added hosts.
+// Or ErrAllOverloaded  if all hosts are overloaded, which shoould never happen.
+// But it's added to make sure that if it happens because of
+// a bug in the implementation, the application can handle it.
 func (b *Bounded) Balance(key string) (host string, err error) {
 	b.Lock()
 	defer b.Unlock()
@@ -214,6 +231,12 @@ func (b *Bounded) loadOK(host string) bool {
 	return false
 }
 
+// Average Load Per Host is:
+// (totalLoad/number_of_hosts)*imbalance_constant
+// totalLoad = sum of all hosts load
+// load = the number of active requests
+// imbalance_constant = is the imbalance constant, which is 1.25 in our case
+// it bounds the load imabalnce to be at most 25% more than (totalLoad/number_of_hosts)
 func (b *Bounded) AvgLoad() uint64 {
 	b.Lock()
 	defer b.Unlock()
@@ -227,6 +250,7 @@ func (b *Bounded) AvgLoad() uint64 {
 	return uint64(avgLoadPerNode)
 }
 
+// Max load of a host is (Average Load Per Host*Host Weight)
 func (b *Bounded) MaxLoad(host string) uint64 {
 	avg := b.AvgLoad()
 

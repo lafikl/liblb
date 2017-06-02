@@ -33,7 +33,6 @@ type P2C struct {
 	enableMetrics bool
 	servedReqs    *prometheus.CounterVec
 	pservedReqs   *prometheus.CounterVec
-	hashing       bool
 
 	sync.Mutex
 }
@@ -52,6 +51,7 @@ func New(hosts ...string) *P2C {
 	return p
 }
 
+// Register liblb_p2c_requests_total metric in prometheus
 func (p *P2C) EnableMetrics() error {
 	p.Lock()
 	defer p.Unlock()

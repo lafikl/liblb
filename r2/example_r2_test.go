@@ -10,7 +10,7 @@ import (
 
 func Example(t *testing.T) {
 	lb := r2.New("127.0.0.1:8009", "127.0.0.1:8008", "127.0.0.1:8007")
-	for i := 0; i < 100; i++ {
+	for i := 0; i < 10; i++ {
 		host, err := lb.Balance()
 		if err != nil {
 			log.Fatal(err)
