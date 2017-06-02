@@ -179,16 +179,18 @@ func (b *Bounded) loadOK(host string) bool {
 	if b.totalLoad == 0 {
 		b.totalLoad = 1
 	}
-	avgLoadPerNode := ((b.totalLoad * 2 / 4) + b.totalLoad) / uint64(len(b.loads))
+	var avgLoadPerNode float64
+	avgLoadPerNode = float64(b.totalLoad/uint64(len(b.loads))) * 1.25
 	if avgLoadPerNode == 0 {
 		avgLoadPerNode = 1
 	}
+
 	bhost, ok := b.loads[host]
 	if !ok {
 		panic(fmt.Sprintf("given host(%s) not in loadsMap", host))
 	}
 
-	if bhost.load < (avgLoadPerNode*uint64(bhost.weight))+1 {
+	if float64(bhost.load) < (avgLoadPerNode*float64(bhost.weight))+1 {
 		return true
 	}
 
@@ -199,10 +201,11 @@ func (b *Bounded) AvgLoad() uint64 {
 	b.Lock()
 	defer b.Unlock()
 
-	avgLoadPerNode := ((b.totalLoad * 2 / 4) + b.totalLoad) / uint64(len(b.loads))
+	avgLoadPerNode := b.totalLoad / uint64(len(b.loads))
 	if avgLoadPerNode == 0 {
 		avgLoadPerNode = 1
 	}
+	avgLoadPerNode = uint64(float64(avgLoadPerNode) * 1.25)
 	return avgLoadPerNode
 }
 
