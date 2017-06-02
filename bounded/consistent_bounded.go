@@ -92,6 +92,21 @@ func (b *Bounded) AddWithWeight(host string, weight int) {
 	b.ch.Add(host)
 }
 
+func (b *Bounded) Remove(host string) {
+	b.Lock()
+	defer b.Unlock()
+
+	load, ok := b.loads[host]
+	if !ok {
+		return
+	}
+
+	b.totalLoad -= load.load
+
+	delete(b.loads, host)
+	b.ch.Remove(host)
+}
+
 func (b *Bounded) Balance(key string) (host string, err error) {
 	b.Lock()
 	defer b.Unlock()
