@@ -6,10 +6,15 @@
 // All opertaions in bounded are concurrency-safe.
 //
 // Average Load Per Host is defined as follows:
+//
 // (totalLoad/number_of_hosts)*imbalance_constant
+//
 // totalLoad = sum of all hosts load
+//
 // load = the number of active requests
+//
 // imbalance_constant = is the imbalance constant, which is 1.25 in our case
+//
 // it bounds the load imabalnce to be at most 25% more than (totalLoad/number_of_hosts)
 package bounded
 

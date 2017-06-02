@@ -2,7 +2,9 @@
 // Which also supports Weighted Round-Robin.
 //
 // Round-Robin is a simple and well known algorithm for load balancing.
+//
 // Here's a simple implmentation of it, if you're not already familiar with it
+//
 // https://play.golang.org/p/XCMAtKGCaE
 package r2
 

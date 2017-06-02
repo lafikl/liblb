@@ -4,13 +4,14 @@
 // where n is the number of servers.
 //
 // One of the issues with Consistent Hashing is load imbalance
-// when you hot keys that goes to a single server,
+// when you have hot keys that goes to a single server,
 // it's mitigated by using virtual nodes,
-// which basically means when adding a host we add n - 20 in our case - copies.
+// which basically means when adding a host we add n - 20 in our case - replicas of that host.
 //
-// Beware that if Consistent Hashing doesn't provide,
+// Beware that Consistent Hashing doesn't provide,
 // an upper bound for the load of a host.
-// If you need such gaurantees see package bounded.
+//
+// If you need such gaurantees see package liblb/bounded.
 //
 // https://en.wikipedia.org/wiki/Consistent_hashing
 package consistent
