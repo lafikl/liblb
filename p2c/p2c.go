@@ -47,7 +47,7 @@ func New(hosts ...string) *P2C {
 	}
 
 	for _, h := range hosts {
-		p.AddHost(h)
+		p.Add(h)
 	}
 	return p
 }
@@ -82,7 +82,7 @@ func (p *P2C) EnableMetrics() error {
 	return nil
 }
 
-func (p *P2C) AddHost(hostName string) {
+func (p *P2C) Add(hostName string) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -91,24 +91,21 @@ func (p *P2C) AddHost(hostName string) {
 	p.loadMap[hostName] = h
 }
 
-func (p *P2C) RemoveHost(host ...string) {
+func (p *P2C) Remove(host string) {
 	p.Lock()
 	defer p.Unlock()
 
-	for _, h := range host {
-		_, ok := p.loadMap[h]
-		if !ok {
-			continue
+	_, ok := p.loadMap[host]
+	if !ok {
+		return
+	}
+
+	delete(p.loadMap, host)
+
+	for i, v := range p.hosts {
+		if v.name == host {
+			p.hosts = append(p.hosts[:i], p.hosts[i+1:]...)
 		}
-
-		delete(p.loadMap, h)
-
-		for i, v := range p.hosts {
-			if v.name == h {
-				p.hosts = append(p.hosts[:i], p.hosts[i+1:]...)
-			}
-		}
-
 	}
 }
 
