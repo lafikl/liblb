@@ -35,7 +35,7 @@ func TestWeightedR2(t *testing.T) {
 	// in reverse order just to make sure
 	// that insetion order of hosts doesn't affect anything
 	for i := len(hosts); i > 0; i-- {
-		lb.AddHostWithWeight(hosts[i-1], i)
+		lb.AddWeight(hosts[i-1], i)
 	}
 
 	loads := map[string]uint64{}
