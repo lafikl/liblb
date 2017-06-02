@@ -18,9 +18,12 @@ type host struct {
 
 // P2C will distribute the traffic by choosing two hosts either via hashing or randomly
 // and then pick the least loaded of the two.
+// It gaurantees that the max load of a server is ln(ln(n)),
+// where n is the number of servers.
 //
-// random p2c http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
-// the hashing P2C https://arxiv.org/pdf/1510.07623.pdf
+// ## Load in P2C:
+//
+// For more on P2C http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
 //
 type P2C struct {
 	hosts   []*host
@@ -121,7 +124,13 @@ func (p *P2C) hash(key string) (string, string) {
 }
 
 // Balance picks two servers either randomly (if no key supplied), or via
-// hashing if given a key then returns the least loaded one between the two
+// hashing (PKG) if given a key, then it returns the least loaded one between the two.
+//
+// Partial Key Grouping (PKG) is great for skewed data workloads, which also needs to be
+// determinstic in the way of choosing which servers to send requests too.
+// https://arxiv.org/pdf/1510.07623.pdf
+// the maximum load of a server in PKG at anytime is:
+// `max_load-avg_load`
 func (p *P2C) Balance(key string) (string, error) {
 	p.Lock()
 	defer p.Unlock()
@@ -160,6 +169,20 @@ func (p *P2C) Balance(key string) (string, error) {
 	return host, nil
 }
 
+// Decrments the load of the host (if found) by 1
+func (p *P2C) Done(host string) {
+	p.Lock()
+	defer p.Unlock()
+
+	h, ok := p.loadMap[host]
+	if !ok {
+		return
+	}
+	if h.load > 0 {
+		h.load--
+	}
+}
+
 // UpdateLoad updates the load of a host
 func (p *P2C) UpdateLoad(host string, load uint64) error {
 	p.Lock()
@@ -173,6 +196,8 @@ func (p *P2C) UpdateLoad(host string, load uint64) error {
 	return nil
 }
 
+// Returns the current load of the server,
+// or it returns liblb.ErrNoHost if the host doesn't exist.
 func (p *P2C) GetLoad(host string) (load uint64, err error) {
 	p.Lock()
 	defer p.Unlock()
