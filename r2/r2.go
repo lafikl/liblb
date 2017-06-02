@@ -1,8 +1,9 @@
-package liblb
+package r2
 
 import (
 	"sync"
 
+	"github.com/lafikl/liblb"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -17,7 +18,7 @@ type R2 struct {
 	sync.Mutex
 }
 
-func NewR2(hosts ...string) *R2 {
+func New(hosts ...string) *R2 {
 	return &R2{i: 0, hosts: hosts}
 }
 
@@ -98,7 +99,7 @@ func (rb *R2) Balance() (string, error) {
 	defer rb.Unlock()
 
 	if len(rb.hosts) == 0 {
-		return "", ErrNoHost
+		return "", liblb.ErrNoHost
 	}
 
 	host := rb.hosts[rb.i]

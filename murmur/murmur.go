@@ -3,7 +3,7 @@
 // Murmur3 32bit hash function based on
 // http://en.wikipedia.org/wiki/MurmurHash
 
-package liblb
+package murmur
 
 const (
 	c1 = 0xcc9e2d51
@@ -20,7 +20,7 @@ var (
 	seed = uint32(1)
 )
 
-func murmur3(key []byte) (hash uint32) {
+func Murmur3(key []byte) (hash uint32) {
 	hash = seed
 	iByte := 0
 	for ; iByte+4 <= len(key); iByte += 4 {

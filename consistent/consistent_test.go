@@ -1,4 +1,4 @@
-package liblb
+package consistent
 
 import (
 	"log"
@@ -7,7 +7,7 @@ import (
 
 func TestNewConsistent(t *testing.T) {
 	hosts := []string{"127.0.0.1", "94.0.0.1", "88.0.0.1"}
-	lb := NewConsistent(hosts...)
+	lb := New(hosts...)
 	loads := map[string]int{}
 
 	lb.EnableMetrics()

@@ -1,4 +1,4 @@
-package liblb
+package r2
 
 import (
 	"log"
@@ -9,7 +9,7 @@ func TestNewR2(t *testing.T) {
 	hosts := []string{"127.0.0.1", "94.0.0.1", "88.0.0.1"}
 	reqPerHost := 100
 
-	lb := NewR2(hosts...)
+	lb := New(hosts...)
 	loads := map[string]uint64{}
 
 	for i := 0; i < reqPerHost*len(hosts); i++ {
@@ -30,7 +30,7 @@ func TestWeightedR2(t *testing.T) {
 	hosts := []string{"127.0.0.1", "94.0.0.1", "88.0.0.1"}
 	reqPerHost := 100
 
-	lb := NewR2()
+	lb := New()
 
 	// in reverse order just to make sure
 	// that insetion order of hosts doesn't affect anything

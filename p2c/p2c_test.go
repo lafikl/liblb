@@ -1,4 +1,4 @@
-package liblb
+package p2c
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ func TestNewP2C(t *testing.T) {
 	}
 	upperVariance := 1 - math.Log(math.Log(float64(len(hosts))))
 
-	lb := NewP2C()
+	lb := New()
 
 	for _, host := range hosts {
 		lb.AddHost(host)
@@ -67,7 +67,7 @@ func TestNewHP2C(t *testing.T) {
 		"88.0.0.1",
 	}
 
-	lb := NewP2C()
+	lb := New()
 
 	for _, host := range hosts {
 		lb.AddHost(host)

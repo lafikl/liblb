@@ -1,4 +1,4 @@
-package liblb
+package p2c
 
 import (
 	"hash/fnv"
@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lafikl/liblb"
+	"github.com/lafikl/liblb/murmur"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -34,7 +36,7 @@ type P2C struct {
 }
 
 // New returns a new instance of RandomTwoBalancer
-func NewP2C(hosts ...string) *P2C {
+func New(hosts ...string) *P2C {
 	p := &P2C{
 		hosts:   []*host{},
 		loadMap: map[string]*host{},
@@ -112,7 +114,7 @@ func (p *P2C) hash(key string) (string, string) {
 	h.Write([]byte(key))
 
 	n1 := p.hosts[int(h.Sum32())%len(p.hosts)].name
-	n2 := p.hosts[int(murmur3([]byte(key)))%len(p.hosts)].name
+	n2 := p.hosts[int(murmur.Murmur3([]byte(key)))%len(p.hosts)].name
 
 	return n1, n2
 
@@ -125,7 +127,7 @@ func (p *P2C) Balance(key string) (string, error) {
 	defer p.Unlock()
 
 	if len(p.hosts) == 0 {
-		return "", ErrNoHost
+		return "", liblb.ErrNoHost
 	}
 
 	// chosen host
@@ -165,7 +167,7 @@ func (p *P2C) UpdateLoad(host string, load uint64) error {
 
 	h, ok := p.loadMap[host]
 	if !ok {
-		return ErrNoHost
+		return liblb.ErrNoHost
 	}
 	h.load = load
 	return nil
@@ -177,7 +179,7 @@ func (p *P2C) GetLoad(host string) (load uint64, err error) {
 
 	h, ok := p.loadMap[host]
 	if !ok {
-		return 0, ErrNoHost
+		return 0, liblb.ErrNoHost
 	}
 	return h.load, nil
 }

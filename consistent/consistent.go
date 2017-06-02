@@ -1,8 +1,9 @@
-package liblb
+package consistent
 
 import (
 	"sync"
 
+	"github.com/lafikl/liblb"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"stathat.com/c/consistent"
@@ -16,7 +17,7 @@ type Consistent struct {
 	sync.RWMutex
 }
 
-func NewConsistent(hosts ...string) *Consistent {
+func New(hosts ...string) *Consistent {
 	c := &Consistent{ch: consistent.New()}
 	for _, h := range hosts {
 		c.ch.Add(h)
@@ -53,7 +54,7 @@ func (c *Consistent) RemoveHost(host string) {
 func (h *Consistent) Balance(key string) (host string, err error) {
 	host, err = h.ch.Get(key)
 	if err != nil {
-		return
+		return "", liblb.ErrNoHost
 	}
 	if h.enableMetrics {
 		h.servedReqs.WithLabelValues(host).Inc()

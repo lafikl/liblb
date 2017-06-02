@@ -1,10 +1,11 @@
-package liblb
+package bounded
 
 import (
 	"errors"
 	"fmt"
 	"sync"
 
+	"github.com/lafikl/liblb"
 	"github.com/prometheus/client_golang/prometheus"
 
 	"stathat.com/c/consistent"
@@ -13,15 +14,15 @@ import (
 var ErrAllOverloaded = errors.New("all hosts are overloaded")
 var Err = errors.New("all hosts are overloaded")
 
-type boundedHost struct {
+type bhost struct {
 	load   uint64
 	weight int
 }
 
-// CHBL is Consistent hashing with bounded loads
-type CHBL struct {
+// Bounded is Consistent hashing with bounded loads
+type Bounded struct {
 	ch               *consistent.Consistent
-	loads            map[string]*boundedHost
+	loads            map[string]*bhost
 	numberOfReplicas int
 	totalLoad        uint64
 
@@ -31,10 +32,10 @@ type CHBL struct {
 	sync.RWMutex
 }
 
-func NewConsistentBounded(hosts ...string) *CHBL {
-	c := &CHBL{
+func New(hosts ...string) *Bounded {
+	c := &Bounded{
 		ch:    consistent.New(),
-		loads: map[string]*boundedHost{},
+		loads: map[string]*bhost{},
 	}
 	for _, h := range hosts {
 		c.Add(h)
@@ -42,7 +43,7 @@ func NewConsistentBounded(hosts ...string) *CHBL {
 	return c
 }
 
-func (c *CHBL) EnableMetrics() error {
+func (c *Bounded) EnableMetrics() error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -58,7 +59,7 @@ func (c *CHBL) EnableMetrics() error {
 
 	errCounter := prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "liblb_consistent_bounded_errors_total",
-		Help: "Number of times CHBL failed",
+		Help: "Number of times Bounded failed",
 	}, []string{"type"})
 
 	err = prometheus.Register(errCounter)
@@ -73,11 +74,11 @@ func (c *CHBL) EnableMetrics() error {
 	return nil
 }
 
-func (b *CHBL) Add(host string) {
+func (b *Bounded) Add(host string) {
 	b.AddWithWeight(host, 1)
 }
 
-func (b *CHBL) AddWithWeight(host string, weight int) {
+func (b *Bounded) AddWithWeight(host string, weight int) {
 	b.Lock()
 	defer b.Unlock()
 
@@ -85,16 +86,16 @@ func (b *CHBL) AddWithWeight(host string, weight int) {
 		return
 	}
 
-	b.loads[host] = &boundedHost{load: 0, weight: weight}
+	b.loads[host] = &bhost{load: 0, weight: weight}
 	b.ch.Add(host)
 }
 
-func (b *CHBL) Balance(key string) (host string, err error) {
+func (b *Bounded) Balance(key string) (host string, err error) {
 	b.Lock()
 	defer b.Unlock()
 
 	if len(b.ch.Members()) == 0 {
-		return "", ErrNoHost
+		return "", liblb.ErrNoHost
 	}
 
 	host, err = b.get("", key, 10)
@@ -112,7 +113,7 @@ func (b *CHBL) Balance(key string) (host string, err error) {
 	return
 }
 
-func (b *CHBL) updateErrCount(err error) {
+func (b *Bounded) updateErrCount(err error) {
 	typ := "empty"
 	if err == ErrAllOverloaded {
 		typ = "overloaded"
@@ -120,7 +121,7 @@ func (b *CHBL) updateErrCount(err error) {
 	b.errCounter.WithLabelValues(typ).Inc()
 }
 
-func (b *CHBL) get(firstKey, currentKey string, size int) (string, error) {
+func (b *Bounded) get(firstKey, currentKey string, size int) (string, error) {
 	hosts, err := b.ch.GetN(currentKey, size)
 	if err != nil {
 		return "", err
@@ -144,7 +145,7 @@ func (b *CHBL) get(firstKey, currentKey string, size int) (string, error) {
 	return b.get(firstKey, currentKey, size)
 }
 
-func (b *CHBL) Done(host string) {
+func (b *Bounded) Done(host string) {
 	b.Lock()
 	defer b.Unlock()
 
@@ -156,7 +157,7 @@ func (b *CHBL) Done(host string) {
 	b.totalLoad--
 }
 
-func (b *CHBL) Loads() map[string]uint64 {
+func (b *Bounded) Loads() map[string]uint64 {
 	loads := map[string]uint64{}
 	for k, bhost := range b.loads {
 		loads[k] = bhost.load
@@ -164,7 +165,7 @@ func (b *CHBL) Loads() map[string]uint64 {
 	return loads
 }
 
-func (b *CHBL) Weights() map[string]uint64 {
+func (b *Bounded) Weights() map[string]uint64 {
 	weights := map[string]uint64{}
 	for k, bhost := range b.loads {
 		weights[k] = uint64(bhost.weight)
@@ -172,7 +173,7 @@ func (b *CHBL) Weights() map[string]uint64 {
 	return weights
 }
 
-func (b *CHBL) loadOK(host string) bool {
+func (b *Bounded) loadOK(host string) bool {
 	// calcs load
 	if b.totalLoad == 0 {
 		b.totalLoad = 1
@@ -194,7 +195,7 @@ func (b *CHBL) loadOK(host string) bool {
 	return false
 }
 
-func (b *CHBL) AvgLoad() uint64 {
+func (b *Bounded) AvgLoad() uint64 {
 	b.Lock()
 	defer b.Unlock()
 
@@ -205,7 +206,7 @@ func (b *CHBL) AvgLoad() uint64 {
 	return avgLoadPerNode
 }
 
-func (b *CHBL) MaxLoad(host string) uint64 {
+func (b *Bounded) MaxLoad(host string) uint64 {
 	avg := b.AvgLoad()
 
 	b.Lock()
