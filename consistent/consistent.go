@@ -1,14 +1,3 @@
-package consistent
-
-import (
-	"sync"
-
-	"github.com/lafikl/liblb"
-	"github.com/prometheus/client_golang/prometheus"
-
-	"stathat.com/c/consistent"
-)
-
 // Consistent uses consistent hashing algorithm to assign work to hosts.
 // Its best for the cases when you need affinty, and your hosts come and go.
 // When removing a host it gaurantees that only 1/n of items gets reshuffled
@@ -24,6 +13,17 @@ import (
 // If you need such gaurantees see package bounded.
 //
 // https://en.wikipedia.org/wiki/Consistent_hashing
+package consistent
+
+import (
+	"sync"
+
+	"github.com/lafikl/liblb"
+	"github.com/prometheus/client_golang/prometheus"
+
+	"stathat.com/c/consistent"
+)
+
 type Consistent struct {
 	ch *consistent.Consistent
 

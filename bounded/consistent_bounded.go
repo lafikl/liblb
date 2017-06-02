@@ -1,3 +1,16 @@
+// Bounded is Consistent hashing with bounded loads.
+// It acheives that by adding a capacity counter on every host,
+// and when a host gets picked it, checks its capacity to see if it's below
+// the Average Load per Host.
+//
+// All opertaions in bounded are concurrency-safe.
+//
+// Average Load Per Host is defined as follows:
+// (totalLoad/number_of_hosts)*imbalance_constant
+// totalLoad = sum of all hosts load
+// load = the number of active requests
+// imbalance_constant = is the imbalance constant, which is 1.25 in our case
+// it bounds the load imabalnce to be at most 25% more than (totalLoad/number_of_hosts)
 package bounded
 
 import (
@@ -20,17 +33,6 @@ type bhost struct {
 	weight int
 }
 
-// Bounded is Consistent hashing with bounded loads.
-// It acheives that by adding a capacity counter on every host,
-// and when a host gets picked it, checks its capacity to see if it's below
-// the Average Load per Host
-//
-// Average Load Per Host is defined as follows:
-// (totalLoad/number_of_hosts)*imbalance_constant
-// totalLoad = sum of all hosts load
-// load = the number of active requests
-// imbalance_constant = is the imbalance constant, which is 1.25 in our case
-// it bounds the load imabalnce to be at most 25% more than (totalLoad/number_of_hosts)
 type Bounded struct {
 	ch        *consistent.Consistent
 	loads     map[string]*bhost

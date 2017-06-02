@@ -1,3 +1,14 @@
+// P2C will distribute the traffic by choosing two hosts either via hashing or randomly
+// and then pick the least loaded of the two.
+// It gaurantees that the max load of a server is ln(ln(n)),
+// where n is the number of servers.
+//
+// All operations in P2C are concurrency-safe.
+//
+// ## Load in P2C:
+//
+// For more on P2C http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+//
 package p2c
 
 import (
@@ -16,15 +27,6 @@ type host struct {
 	load uint64
 }
 
-// P2C will distribute the traffic by choosing two hosts either via hashing or randomly
-// and then pick the least loaded of the two.
-// It gaurantees that the max load of a server is ln(ln(n)),
-// where n is the number of servers.
-//
-// ## Load in P2C:
-//
-// For more on P2C http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
-//
 type P2C struct {
 	hosts   []*host
 	rndm    *rand.Rand
