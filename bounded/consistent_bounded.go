@@ -3,6 +3,7 @@ package bounded
 import (
 	"errors"
 	"fmt"
+	"math"
 	"sync"
 
 	"github.com/lafikl/liblb"
@@ -180,17 +181,18 @@ func (b *Bounded) loadOK(host string) bool {
 		b.totalLoad = 1
 	}
 	var avgLoadPerNode float64
-	avgLoadPerNode = float64(b.totalLoad/uint64(len(b.loads))) * 1.25
+	avgLoadPerNode = float64(b.totalLoad / uint64(len(b.loads)))
 	if avgLoadPerNode == 0 {
 		avgLoadPerNode = 1
 	}
+	avgLoadPerNode = math.Ceil(avgLoadPerNode * 1.25)
 
 	bhost, ok := b.loads[host]
 	if !ok {
 		panic(fmt.Sprintf("given host(%s) not in loadsMap", host))
 	}
 
-	if float64(bhost.load) < (avgLoadPerNode*float64(bhost.weight))+1 {
+	if float64(bhost.load)+1 <= (avgLoadPerNode * float64(bhost.weight)) {
 		return true
 	}
 
@@ -201,12 +203,13 @@ func (b *Bounded) AvgLoad() uint64 {
 	b.Lock()
 	defer b.Unlock()
 
-	avgLoadPerNode := b.totalLoad / uint64(len(b.loads))
+	var avgLoadPerNode float64
+	avgLoadPerNode = float64(b.totalLoad / uint64(len(b.loads)))
 	if avgLoadPerNode == 0 {
 		avgLoadPerNode = 1
 	}
-	avgLoadPerNode = uint64(float64(avgLoadPerNode) * 1.25)
-	return avgLoadPerNode
+	avgLoadPerNode = math.Ceil(avgLoadPerNode * 1.25)
+	return uint64(avgLoadPerNode)
 }
 
 func (b *Bounded) MaxLoad(host string) uint64 {
