@@ -5,9 +5,11 @@
 //
 // All operations in P2C are concurrency-safe.
 //
-// ## Load in P2C:
 //
-// For more on P2C http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
+// For more info:
+// https://brooker.co.za/blog/2012/01/17/two-random.html
+//
+// http://www.eecs.harvard.edu/~michaelm/postscripts/handbook2001.pdf
 //
 package p2c
 

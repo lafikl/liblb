@@ -15,7 +15,13 @@
 //
 // imbalance_constant = is the imbalance constant, which is 1.25 in our case
 //
-// it bounds the load imabalnce to be at most 25% more than (totalLoad/number_of_hosts)
+// it bounds the load imabalnce to be at most 25% more than (totalLoad/number_of_hosts).
+//
+//
+// For more info:
+// https://medium.com/vimeo-engineering-blog/improving-load-balancing-with-a-new-consistent-hashing-algorithm-9f1bd75709ed
+//
+// https://research.googleblog.com/2017/04/consistent-hashing-with-bounded-loads.html
 package bounded
 
 import (
