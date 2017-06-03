@@ -113,11 +113,8 @@ func (rb *R2) Balance() (string, error) {
 		return "", liblb.ErrNoHost
 	}
 
-	host := rb.hosts[rb.i]
+	host := rb.hosts[rb.i%len(rb.hosts)]
 	rb.i++
-	if rb.i >= len(rb.hosts) {
-		rb.i = 0
-	}
 
 	if rb.enableMetrics {
 		rb.servedReqs.WithLabelValues(host).Inc()
