@@ -21,6 +21,8 @@ func Example(t *testing.T) {
 		}
 		// load should be around 33% per host
 		fmt.Printf("Send request #%d to host %s\n", i, host)
+		// when the work assign to the host is done
+		lb.Done(host)
 	}
 
 	// Partial Key Grouping example
@@ -34,6 +36,8 @@ func Example(t *testing.T) {
 
 		// traffic should be split between two nodes only
 		fmt.Printf("Send request #%d to host %s\n", i, host)
+		// when the work assign to the host is done
+		lb.Done(host)
 
 	}
 }

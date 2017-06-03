@@ -77,7 +77,6 @@ func TestNewHP2C(t *testing.T) {
 		for j := 0; j < 100; j++ {
 			lb.Balance("hello, world!")
 		}
-		time.Sleep(100 * time.Millisecond)
 	}
 
 	for _, host := range hosts {

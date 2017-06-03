@@ -21,11 +21,10 @@ func Example(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		// do work for "host"
 		fmt.Printf("Send request #%d to host %s\n", i, host)
+		// when the work assign to the host is done
+		lb.Done(host)
 	}
 
-	loads := lb.Loads()
-	for host, load := range loads {
-		fmt.Printf("%s: Load=%d MaxLoad=%d\n", host, load, lb.MaxLoad(host))
-	}
 }
