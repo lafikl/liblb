@@ -12,15 +12,11 @@ import (
 	"sync"
 
 	"github.com/lafikl/liblb"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type R2 struct {
-	i             int
-	hosts         []string
-	enableMetrics bool
-
-	servedReqs *prometheus.CounterVec
+	i     int
+	hosts []string
 
 	sync.Mutex
 }
@@ -85,26 +81,6 @@ func (rb *R2) Remove(host string) {
 	}
 }
 
-func (rb *R2) EnableMetrics() error {
-	rb.Lock()
-	defer rb.Unlock()
-
-	sreq := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "liblb_r2_requests_total",
-		Help: "Number of requests served by R2 balancer",
-	}, []string{"host"})
-
-	err := prometheus.Register(sreq)
-	if err != nil {
-		return err
-	}
-	rb.servedReqs = sreq
-
-	rb.enableMetrics = true
-
-	return nil
-}
-
 func (rb *R2) Balance() (string, error) {
 	rb.Lock()
 	defer rb.Unlock()
@@ -115,10 +91,6 @@ func (rb *R2) Balance() (string, error) {
 
 	host := rb.hosts[rb.i%len(rb.hosts)]
 	rb.i++
-
-	if rb.enableMetrics {
-		rb.servedReqs.WithLabelValues(host).Inc()
-	}
 
 	return host, nil
 }

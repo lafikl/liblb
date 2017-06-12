@@ -10,7 +10,6 @@ func TestNewConsistent(t *testing.T) {
 	lb := New(hosts...)
 	loads := map[string]int{}
 
-	lb.EnableMetrics()
 	for i := 0; i < 100; i++ {
 		host, err := lb.Balance("hello, world!")
 		if err != nil {

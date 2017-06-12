@@ -21,7 +21,6 @@ import (
 
 	"github.com/lafikl/liblb"
 	"github.com/lafikl/liblb/murmur"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 type host struct {
@@ -33,10 +32,6 @@ type P2C struct {
 	hosts   []*host
 	rndm    *rand.Rand
 	loadMap map[string]*host
-
-	enableMetrics bool
-	servedReqs    *prometheus.CounterVec
-	pservedReqs   *prometheus.CounterVec
 
 	sync.Mutex
 }
@@ -52,38 +47,8 @@ func New(hosts ...string) *P2C {
 	for _, h := range hosts {
 		p.Add(h)
 	}
+
 	return p
-}
-
-// Register liblb_p2c_requests_total metric in prometheus
-func (p *P2C) EnableMetrics() error {
-	p.Lock()
-	defer p.Unlock()
-
-	sreq := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "liblb_p2c_requests_total",
-		Help: "Number of requests served by P2C balancer",
-	}, []string{"host"})
-
-	err := prometheus.Register(sreq)
-	if err != nil {
-		return err
-	}
-	p.servedReqs = sreq
-
-	psreq := prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "liblb_pp2c_requests_total",
-		Help: "Number of requests served by Partial Key balancer",
-	}, []string{"host"})
-
-	err = prometheus.Register(psreq)
-	if err != nil {
-		return err
-	}
-	p.pservedReqs = psreq
-
-	p.enableMetrics = true
-	return nil
 }
 
 func (p *P2C) Add(hostName string) {
@@ -156,14 +121,6 @@ func (p *P2C) Balance(key string) (string, error) {
 
 	if p.loadMap[n1].load <= p.loadMap[n2].load {
 		host = n1
-	}
-
-	if p.enableMetrics {
-		if len(key) > 0 {
-			p.pservedReqs.WithLabelValues(host).Inc()
-		} else {
-			p.servedReqs.WithLabelValues(host).Inc()
-		}
 	}
 
 	p.loadMap[host].load++

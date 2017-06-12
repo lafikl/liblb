@@ -2,9 +2,9 @@ package p2c
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"testing"
-	"time"
 )
 
 func TestNewP2C(t *testing.T) {
@@ -24,10 +24,7 @@ func TestNewP2C(t *testing.T) {
 	}
 
 	for i := 0; i < 200; i++ {
-		for j := 0; j < 100; j++ {
-			lb.Balance("")
-		}
-		time.Sleep(100 * time.Millisecond)
+		lb.Balance("")
 	}
 
 	for _, host := range hosts {
@@ -87,4 +84,48 @@ func TestNewHP2C(t *testing.T) {
 		fmt.Printf("%s=%d\n", host, val)
 
 	}
+}
+
+func TestLongestRun(t *testing.T) {
+	var hosts = []string{
+		"127.0.0.1",
+		"225.0.0.1",
+		"10.0.0.1",
+		"28.0.0.1",
+		"88.0.0.1",
+	}
+	lb := New(hosts...)
+
+	longestRun := map[string]int{}
+
+	currentHost := ""
+	currentCount := 0
+	for i := 0; i < 1000; i++ {
+		// host, err := lb.Balance(fmt.Sprintf("hello, world !", i))
+		host, err := lb.Balance("hello, world!")
+		if err != nil {
+			t.Fatal(err)
+		}
+		if currentHost != host {
+			lrun, _ := longestRun[currentHost]
+			if lrun < currentCount {
+				longestRun[currentHost] = currentCount
+			}
+			currentHost = host
+			currentCount = 1
+			continue
+		}
+		currentCount++
+	}
+
+	log.Println(longestRun)
+
+	for _, host := range hosts {
+		val, err := lb.GetLoad(host)
+		if err != nil {
+			t.Fatal(err)
+		}
+		fmt.Printf("%s=%d\n", host, val)
+	}
+
 }
