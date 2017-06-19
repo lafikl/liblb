@@ -16,11 +16,11 @@ package p2c
 import (
 	"hash/fnv"
 	"math/rand"
-	"sync"
 	"time"
 
 	"github.com/lafikl/liblb"
 	"github.com/lafikl/liblb/murmur"
+	"github.com/tevino/abool"
 )
 
 type host struct {
@@ -33,7 +33,7 @@ type P2C struct {
 	rndm    *rand.Rand
 	loadMap map[string]*host
 
-	sync.Mutex
+	lock *abool.AtomicBool
 }
 
 // New returns a new instance of RandomTwoBalancer
@@ -42,6 +42,7 @@ func New(hosts ...string) *P2C {
 		hosts:   []*host{},
 		loadMap: map[string]*host{},
 		rndm:    rand.New(rand.NewSource(time.Now().UnixNano())),
+		lock:	 abool.New()
 	}
 
 	for _, h := range hosts {
@@ -52,8 +53,8 @@ func New(hosts ...string) *P2C {
 }
 
 func (p *P2C) Add(hostName string) {
-	p.Lock()
-	defer p.Unlock()
+	p.lock.Set()
+	defer p.lock.UnSet()
 
 	h := &host{name: hostName, load: 0}
 	p.hosts = append(p.hosts, h)
@@ -61,8 +62,8 @@ func (p *P2C) Add(hostName string) {
 }
 
 func (p *P2C) Remove(host string) {
-	p.Lock()
-	defer p.Unlock()
+	p.lock.Set()
+	defer p.lock.UnSet()
 
 	_, ok := p.loadMap[host]
 	if !ok {
@@ -98,8 +99,8 @@ func (p *P2C) hash(key string) (string, string) {
 // the maximum load of a server in PKG at anytime is:
 // `max_load-avg_load`
 func (p *P2C) Balance(key string) (string, error) {
-	p.Lock()
-	defer p.Unlock()
+	p.lock.Set()
+	defer p.lock.UnSet()
 
 	if len(p.hosts) == 0 {
 		return "", liblb.ErrNoHost
@@ -129,8 +130,8 @@ func (p *P2C) Balance(key string) (string, error) {
 
 // Decrments the load of the host (if found) by 1
 func (p *P2C) Done(host string) {
-	p.Lock()
-	defer p.Unlock()
+	p.lock.Set()
+	defer p.lock.UnSet()
 
 	h, ok := p.loadMap[host]
 	if !ok {
@@ -143,8 +144,8 @@ func (p *P2C) Done(host string) {
 
 // UpdateLoad updates the load of a host
 func (p *P2C) UpdateLoad(host string, load uint64) error {
-	p.Lock()
-	defer p.Unlock()
+	p.lock.Set()
+	defer p.lock.UnSet()
 
 	h, ok := p.loadMap[host]
 	if !ok {
@@ -157,8 +158,8 @@ func (p *P2C) UpdateLoad(host string, load uint64) error {
 // Returns the current load of the server,
 // or it returns liblb.ErrNoHost if the host doesn't exist.
 func (p *P2C) GetLoad(host string) (load uint64, err error) {
-	p.Lock()
-	defer p.Unlock()
+	p.lock.Set()
+	defer p.lock.UnSet()
 
 	h, ok := p.loadMap[host]
 	if !ok {

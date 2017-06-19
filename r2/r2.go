@@ -9,26 +9,25 @@
 package r2
 
 import (
-	"sync"
-
 	"github.com/lafikl/liblb"
+	"github.com/tevino/abool"
 )
 
 type R2 struct {
 	i     int
 	hosts []string
 
-	sync.Mutex
+	lock *abool.AtomicBool
 }
 
 func New(hosts ...string) *R2 {
-	return &R2{i: 0, hosts: hosts}
+	return &R2{i: 0, hosts: hosts, lock: abool.New()}
 }
 
 // Adds a host to the list of hosts, with the weight of the host being 1.
 func (rb *R2) Add(host string) {
-	rb.Lock()
-	defer rb.Unlock()
+	rb.lock.Set()
+	defer rb.lock.UnSet()
 
 	for _, h := range rb.hosts {
 		if h == host {
@@ -41,8 +40,8 @@ func (rb *R2) Add(host string) {
 // Weight increases the percentage of requests that get sent to the host
 // Which can be calculated as `weight/(total_weights+weight)`.
 func (rb *R2) AddWeight(host string, weight int) {
-	rb.Lock()
-	defer rb.Unlock()
+	rb.lock.Set()
+	defer rb.lock.UnSet()
 
 	for _, h := range rb.hosts {
 		if h == host {
@@ -58,8 +57,8 @@ func (rb *R2) AddWeight(host string, weight int) {
 
 // Check if host already exist
 func (rb *R2) Exists(host string) bool {
-	rb.Lock()
-	defer rb.Unlock()
+	rb.lock.Set()
+	defer rb.lock.UnSet()
 
 	for _, h := range rb.hosts {
 		if h == host {
@@ -71,8 +70,8 @@ func (rb *R2) Exists(host string) bool {
 }
 
 func (rb *R2) Remove(host string) {
-	rb.Lock()
-	defer rb.Unlock()
+	rb.lock.Set()
+	defer rb.lock.UnSet()
 
 	for i, h := range rb.hosts {
 		if host == h {
@@ -82,8 +81,8 @@ func (rb *R2) Remove(host string) {
 }
 
 func (rb *R2) Balance() (string, error) {
-	rb.Lock()
-	defer rb.Unlock()
+	rb.lock.Set()
+	defer rb.lock.UnSet()
 
 	if len(rb.hosts) == 0 {
 		return "", liblb.ErrNoHost
