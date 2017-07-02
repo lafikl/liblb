@@ -56,7 +56,7 @@ func (b *Bounded) Remove(host string) {
 	b.ch.Remove(host)
 }
 
-// err can be either liblb.ErrNoHost if there's no added hosts.
+// err can be liblb.ErrNoHost if there's no added hosts.
 func (b *Bounded) Balance(key string) (host string, err error) {
 	if len(b.ch.Hosts()) == 0 {
 		return "", liblb.ErrNoHost
